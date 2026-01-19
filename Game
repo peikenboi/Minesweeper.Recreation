@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Minesweeper</title>
+
+<style>
+body{
+  margin:0;
+  background:#008080;
+  font-family:Tahoma, Arial, sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+#game{
+  background:#c0c0c0;
+  padding:10px;
+  border:3px solid #ffffff;
+  border-right-color:#7b7b7b;
+  border-bottom-color:#7b7b7b;
+}
+
+#top{
+  display:flex;
+  gap:6px;
+  margin-bottom:6px;
+  flex-wrap:wrap;
+}
+
+select,input,button{
+  font-size:12px;
+}
+
+.grid{
+  display:grid;
+  gap:2px;
+  background:#7b7b7b;
+  padding:3px;
+}
+
+.cell{
+  width:26px;
+  height:26px;
+  background:#c0c0c0;
+  border:2px solid #ffffff;
+  border-right-color:#7b7b7b;
+  border-bottom-color:#7b7b7b;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  user-select:none;
+  cursor:pointer;
+}
+
+.cell.revealed{
+  background:#bdbdbd;
+  border:1px solid #7b7b7b;
+  cursor:default;
+}
+
+.cell.mine{
+  background:#ff0000;
+}
+
+.n1{color:#0000ff}
+.n2{color:#008000}
+.n3{color:#ff0000}
+.n4{color:#000080}
+.n5{color:#800000}
+.n6{color:#008080}
+.n7{color:#000000}
+.n8{color:#808080}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="top">
+<select id="preset">
+  <option value="beginner">Beginner</option>
+  <option value="intermediate">Intermediate</option>
+  <option value="expert">Expert</option>
+  <option value="custom">Custom</option>
+</select>
+
+<label>Rows <input id="rows" type="number" value="9" min="5" max="40"></label>
+<label>Cols <input id="cols" type="number" value="9" min="5" max="40"></label>
+<label>Mines % <input id="chance" type="number" value="12" min="5" max="50"></label>
+
+<button id="restart">Restart</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+</div>
+
+<script>
+let rows=9,cols=9,mineChance=12;
+let grid=document.getElementById("grid");
+let cells=[];
+let mines=new Set();
+let flags=new Set();
+let revealed=new Set();
+let longPressTimer=null;
+
+function idx(r,c){return r*cols+c}
+
+function neighbors(r,c){
+  let arr=[];
+  for(let dr=-1;dr<=1;dr++){
+    for(let dc=-1;dc<=1;dc++){
+      if(dr==0&&dc==0)continue;
+      let nr=r+dr,nc=c+dc;
+      if(nr>=0&&nr<rows&&nc>=0&&nc<cols){
+        arr.push([nr,nc]);
+      }
+    }
+  }
+  return arr;
+}
+
+function placeMines(){
+  for(let i=0;i<rows*cols;i++){
+    if(Math.random()*100<mineChance){
+      mines.add(i);
+    }
+  }
+}
+
+function countMines(r,c){
+  let n=0;
+  neighbors(r,c).forEach(([nr,nc])=>{
+    if(mines.has(idx(nr,nc)))n++;
+  });
+  return n;
+}
+
+function reveal(r,c){
+  let i=idx(r,c);
+  if(revealed.has(i)||flags.has(i))return;
+  let cell=cells[i];
+  revealed.add(i);
+  cell.classList.add("revealed");
+
+  if(mines.has(i)){
+    cell.classList.add("mine");
+    cell.textContent="💣";
+    alert("Game Over");
+    return;
+  }
+
+  let n=countMines(r,c);
+  if(n>0){
+    cell.textContent=n;
+    cell.classList.add("n"+n);
+  }else{
+    neighbors(r,c).forEach(([nr,nc])=>reveal(nr,nc));
+  }
+}
+
+function chord(r,c){
+  let i=idx(r,c);
+  if(!revealed.has(i))return;
+  let n=countMines(r,c);
+  let f=0;
+  neighbors(r,c).forEach(([nr,nc])=>{
+    if(flags.has(idx(nr,nc)))f++;
+  });
+  if(f===n){
+    neighbors(r,c).forEach(([nr,nc])=>reveal(nr,nc));
+  }
+}
+
+function flag(i){
+  if(revealed.has(i))return;
+  let cell=cells[i];
+  if(flags.has(i)){
+    flags.delete(i);
+    cell.textContent="";
+  }else{
+    flags.add(i);
+    cell.textContent="🚩";
+  }
+}
+
+function init(){
+  grid.innerHTML="";
+  cells=[];
+  mines.clear();
+  flags.clear();
+  revealed.clear();
+
+  placeMines();
+
+  grid.style.gridTemplateColumns=`repeat(${cols},26px)`;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      let cell=document.createElement("div");
+      cell.className="cell";
+
+      cell.oncontextmenu=e=>{
+        e.preventDefault();
+        flag(idx(r,c));
+      };
+
+      cell.addEventListener("click",()=>{
+        if(revealed.has(idx(r,c))) chord(r,c);
+        else reveal(r,c);
+      });
+
+      cell.addEventListener("touchstart",()=>{
+        longPressTimer=setTimeout(()=>flag(idx(r,c)),500);
+      });
+
+      cell.addEventListener("touchend",()=>{
+        clearTimeout(longPressTimer);
+      });
+
+      grid.appendChild(cell);
+      cells.push(cell);
+    }
+  }
+}
+
+document.getElementById("restart").onclick=()=>{
+  rows=+rowsInput.value;
+  cols=+colsInput.value;
+  mineChance=+chanceInput.value;
+  init();
+};
+
+let rowsInput=document.getElementById("rows");
+let colsInput=document.getElementById("cols");
+let chanceInput=document.getElementById("chance");
+
+document.getElementById("preset").onchange=e=>{
+  let v=e.target.value;
+  if(v==="beginner"){rows=9;cols=9;mineChance=12}
+  if(v==="intermediate"){rows=16;cols=16;mineChance=15}
+  if(v==="expert"){rows=16;cols=30;mineChance=20}
+  rowsInput.value=rows;
+  colsInput.value=cols;
+  chanceInput.value=mineChance;
+  init();
+};
+
+init();
+</script>
+
+</body>
+</html>
