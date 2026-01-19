@@ -942,7 +942,7 @@ const game = {
       },
       {
         text: "Perfect! Flags mark suspected mines. Let's try chording: click on the '1' at the highlighted position. If the correct number of flags surround it, it reveals the rest!",
-        highlight: {row: 2, col: 0},
+        highlight: {row: 3, col: 0},
         action: 'chord',
         needsAction: true
       },
@@ -1033,7 +1033,7 @@ const game = {
       this.reveal(r, c);
       this.tutorialStep++;
       this.showTutorialStep();
-    } else if (step === 3 && r === 2 && c === 0) {
+    } else if (step === 3 && r === 3 && c === 0) {
       this.chord(r, c);
       this.tutorialStep++;
       this.showTutorialStep();
