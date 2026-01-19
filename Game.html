@@ -46,53 +46,8 @@ body{
 #smiley{
   width:32px;
   height:32px;
-  background:#ffff00;
-  border:2px solid #7b7b7b;
-  border-top-color:#ffffff;
-  border-left-color:#ffffff;
-  position:relative;
+  font-size:20px;
   cursor:pointer;
-}
-
-.eye{
-  width:4px;
-  height:4px;
-  background:black;
-  position:absolute;
-  top:9px;
-}
-
-.eye.left{left:8px}
-.eye.right{right:8px}
-
-.mouth{
-  width:14px;
-  height:6px;
-  border-bottom:2px solid black;
-  position:absolute;
-  bottom:8px;
-  left:9px;
-}
-
-#smiley.dead .eye{
-  width:8px;
-  height:2px;
-  top:10px;
-}
-
-#smiley.dead .eye.left{transform:rotate(45deg)}
-#smiley.dead .eye.right{transform:rotate(-45deg)}
-
-#smiley.dead .mouth{
-  border-bottom:none;
-  border-top:2px solid black;
-}
-
-#smiley.win .mouth{
-  width:16px;
-  height:8px;
-  border-bottom:3px solid black;
-  left:8px;
 }
 
 #controls{
@@ -151,13 +106,7 @@ body{
 
 <div id="header">
   <div class="counter" id="mineCounter">000</div>
-
-  <div id="smiley">
-    <div class="eye left"></div>
-    <div class="eye right"></div>
-    <div class="mouth"></div>
-  </div>
-
+  <button id="smiley">🙂</button>
   <div class="counter" id="timer">000</div>
 </div>
 
@@ -190,19 +139,22 @@ function idx(r,c){return r*cols+c}
 function neighbors(r,c){
   let a=[];
   for(let dr=-1;dr<=1;dr++)
-    for(let dc=-1;dc<=1;dc++)
+    for(let dc=-1;dc<=1;dc++){
       if(dr||dc){
         let nr=r+dr,nc=c+dc;
         if(nr>=0&&nr<rows&&nc>=0&&nc<cols)a.push([nr,nc]);
       }
+    }
   return a;
 }
 
 function placeMinesSafe(sr,sc){
   let safe=new Set([idx(sr,sc)]);
   neighbors(sr,sc).forEach(([r,c])=>safe.add(idx(r,c)));
-  for(let i=0;i<rows*cols;i++)
-    if(!safe.has(i)&&Math.random()*100<mineChance)mines.add(i);
+  for(let i=0;i<rows*cols;i++){
+    if(safe.has(i))continue;
+    if(Math.random()*100<mineChance)mines.add(i);
+  }
   updateMineCounter();
 }
 
@@ -265,8 +217,8 @@ function flag(i){
 }
 
 function updateMineCounter(){
-  document.getElementById("mineCounter").textContent=
-    String(Math.max(0,mines.size-flags.size)).padStart(3,"0");
+  let m=Math.max(0,mines.size-flags.size);
+  document.getElementById("mineCounter").textContent=String(m).padStart(3,"0");
 }
 
 function startTimer(){
@@ -279,8 +231,7 @@ function startTimer(){
 function endGame(win){
   gameOver=true;
   clearInterval(timerInt);
-  let s=document.getElementById("smiley");
-  s.className=win?"win":"dead";
+  document.getElementById("smiley").textContent=win?"😎":"😵";
   if(win)alert("You win! Score: "+score);
 }
 
@@ -300,8 +251,8 @@ function init(){
   timer=0;
   clearInterval(timerInt);
   document.getElementById("timer").textContent="000";
+  document.getElementById("smiley").textContent="🙂";
   document.getElementById("mineCounter").textContent="000";
-  document.getElementById("smiley").className="";
   grid.style.gridTemplateColumns=`repeat(${cols},26px)`;
 
   for(let r=0;r<rows;r++)
