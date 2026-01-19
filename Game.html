@@ -328,6 +328,11 @@ body {
   margin-top: 15px;
 }
 
+.tutorial-btn {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 .game-over-screen {
   text-align: center;
 }
@@ -340,6 +345,70 @@ body {
 .game-over-screen .final-time {
   font-size: 24px;
   margin-bottom: 20px;
+}
+
+.tutorial-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.tutorial-highlight {
+  position: absolute;
+  border: 3px solid #ffff00;
+  box-shadow: 0 0 20px #ffff00;
+  pointer-events: none;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.tutorial-message {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 15px 20px;
+  max-width: 500px;
+  font-size: 16px;
+  z-index: 101;
+  text-align: center;
+}
+
+.tutorial-message button {
+  margin-top: 10px;
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 5px 15px;
+  cursor: pointer;
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+  font-size: 14px;
+}
+
+.tutorial-message button:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.tutorial-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 20px solid #ffff00;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 </style>
 </head>
@@ -367,6 +436,8 @@ body {
 <div class="modal" id="menuModal">
   <div class="modal-content">
     <div class="modal-title">Settings</div>
+    
+    <button class="menu-btn tutorial-btn" onclick="game.startTutorial()">Start Tutorial</button>
     
     <div class="preset-btns">
       <button class="preset-btn" onclick="game.setPreset('beginner')">Beginner</button>
@@ -424,6 +495,9 @@ const game = {
   timer: 0,
   timerInterval: null,
   touchTimer: null,
+  tutorialActive: false,
+  tutorialStep: 0,
+  tutorialBoard: null,
   
   init() {
     this.createBoard();
@@ -558,6 +632,11 @@ const game = {
     e.preventDefault();
     if (this.gameOver) return;
     
+    if (this.tutorialActive) {
+      this.handleTutorialClick(r, c);
+      return;
+    }
+    
     if (this.firstClick) {
       this.placeMines(r, c);
       this.firstClick = false;
@@ -578,6 +657,11 @@ const game = {
     if (this.gameOver || this.revealed[r][c]) return;
     
     if (this.firstClick) return;
+    
+    if (this.tutorialActive) {
+      this.handleTutorialRightClick(r, c);
+      return;
+    }
     
     this.flagged[r][c] = !this.flagged[r][c];
     this.updateBoard();
@@ -794,6 +878,166 @@ const game = {
     document.body.style.background = bgColor;
     
     this.closeMenu();
+    this.reset();
+  },
+  
+  startTutorial() {
+    this.closeMenu();
+    this.tutorialActive = true;
+    this.tutorialStep = 0;
+    this.gameOver = false;
+    this.firstClick = true;
+    this.stopTimer();
+    
+    this.width = 8;
+    this.height = 8;
+    this.createBoard();
+    this.setupTutorialBoard();
+    this.render();
+    this.showTutorialStep();
+  },
+  
+  setupTutorialBoard() {
+    this.board = [
+      [0, 0, 0, 0, 1, 1, 1, 0],
+      [0, 0, 0, 0, 1, -1, 1, 0],
+      [1, 1, 1, 0, 1, 1, 1, 0],
+      [1, -1, 1, 0, 0, 0, 0, 0],
+      [1, 1, 1, 0, 1, 1, 1, 0],
+      [0, 0, 0, 0, 1, -1, 1, 0],
+      [0, 1, 1, 1, 1, 1, 1, 0],
+      [0, 1, -1, 1, 0, 0, 0, 0]
+    ];
+    this.mineCount = 3;
+    this.revealed = Array(this.height).fill().map(() => Array(this.width).fill(false));
+    this.flagged = Array(this.height).fill().map(() => Array(this.width).fill(false));
+    this.updateMineCounter();
+  },
+  
+  showTutorialStep() {
+    const messages = [
+      {
+        text: "Welcome to Minesweeper! Click on the cell at row 1, column 1 (top-left area) to reveal it.",
+        highlight: {row: 0, col: 0},
+        action: 'click'
+      },
+      {
+        text: "Great! Empty cells (0) automatically reveal surrounding cells. Now click on any number to see what it means.",
+        highlight: {row: 2, col: 0},
+        action: 'click'
+      },
+      {
+        text: "Numbers tell you how many mines are adjacent. Now right-click (or hold on mobile) on the cell at row 4, column 2 to place a flag where you think a mine is.",
+        highlight: {row: 3, col: 1},
+        action: 'flag'
+      },
+      {
+        text: "Perfect! Flags mark suspected mines. Let's try chording: click on the '1' you revealed earlier. If the correct number of flags surround it, it reveals the rest!",
+        highlight: {row: 2, col: 0},
+        action: 'chord'
+      },
+      {
+        text: "Excellent! You've learned the basics: Click to reveal, Right-click to flag, and Click numbers to chord. Ready to play? Click 'Finish' to start a real game!",
+        highlight: null,
+        action: 'finish'
+      }
+    ];
+    
+    const step = messages[this.tutorialStep];
+    this.removeTutorialHighlight();
+    
+    if (step.highlight) {
+      this.addTutorialHighlight(step.highlight.row, step.highlight.col);
+    }
+    
+    this.showTutorialMessage(step.text, step.action === 'finish');
+  },
+  
+  addTutorialHighlight(row, col) {
+    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    if (!cell) return;
+    
+    const rect = cell.getBoundingClientRect();
+    const container = document.querySelector('.game-container');
+    const containerRect = container.getBoundingClientRect();
+    
+    const highlight = document.createElement('div');
+    highlight.className = 'tutorial-highlight';
+    highlight.id = 'tutorialHighlight';
+    highlight.style.left = (rect.left - containerRect.left) + 'px';
+    highlight.style.top = (rect.top - containerRect.top) + 'px';
+    highlight.style.width = rect.width + 'px';
+    highlight.style.height = rect.height + 'px';
+    
+    container.style.position = 'relative';
+    container.appendChild(highlight);
+    
+    const arrow = document.createElement('div');
+    arrow.className = 'tutorial-arrow';
+    arrow.id = 'tutorialArrow';
+    arrow.style.left = (rect.left - containerRect.left + rect.width / 2 - 15) + 'px';
+    arrow.style.top = (rect.top - containerRect.top - 25) + 'px';
+    container.appendChild(arrow);
+  },
+  
+  removeTutorialHighlight() {
+    const highlight = document.getElementById('tutorialHighlight');
+    const arrow = document.getElementById('tutorialArrow');
+    if (highlight) highlight.remove();
+    if (arrow) arrow.remove();
+  },
+  
+  showTutorialMessage(text, isFinish) {
+    let msg = document.getElementById('tutorialMessage');
+    if (!msg) {
+      msg = document.createElement('div');
+      msg.id = 'tutorialMessage';
+      msg.className = 'tutorial-message';
+      document.body.appendChild(msg);
+    }
+    
+    msg.innerHTML = `
+      <div>${text}</div>
+      ${isFinish ? '<button onclick="game.endTutorial()">Finish Tutorial</button>' : ''}
+    `;
+  },
+  
+  handleTutorialClick(r, c) {
+    const step = this.tutorialStep;
+    
+    if (step === 0 && r === 0 && c === 0) {
+      this.reveal(r, c);
+      this.tutorialStep++;
+      this.showTutorialStep();
+    } else if (step === 1 && this.revealed[r][c] === false) {
+      this.reveal(r, c);
+      this.tutorialStep++;
+      this.showTutorialStep();
+    } else if (step === 3 && r === 2 && c === 0) {
+      this.chord(r, c);
+      this.tutorialStep++;
+      this.showTutorialStep();
+    }
+  },
+  
+  handleTutorialRightClick(r, c) {
+    if (this.tutorialStep === 2 && r === 3 && c === 1) {
+      this.flagged[r][c] = true;
+      this.updateBoard();
+      this.updateMineCounter();
+      this.tutorialStep++;
+      this.showTutorialStep();
+    }
+  },
+  
+  endTutorial() {
+    this.tutorialActive = false;
+    this.removeTutorialHighlight();
+    const msg = document.getElementById('tutorialMessage');
+    if (msg) msg.remove();
+    
+    this.width = 9;
+    this.height = 9;
     this.reset();
   }
 };
