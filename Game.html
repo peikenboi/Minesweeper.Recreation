@@ -786,6 +786,12 @@ const game = {
     this.stopTimer();
     this.setSmiley('dead');
     
+    // If in tutorial, end it
+    if (this.tutorialActive) {
+      this.endTutorial();
+      return;
+    }
+    
     for (let r = 0; r < this.height; r++) {
       for (let c = 0; c < this.width; c++) {
         if (this.board[r][c] === -1) {
@@ -886,7 +892,7 @@ const game = {
     this.tutorialActive = true;
     this.tutorialStep = 0;
     this.gameOver = false;
-    this.firstClick = true;
+    this.firstClick = false;
     this.stopTimer();
     
     this.width = 8;
@@ -919,27 +925,32 @@ const game = {
       {
         text: "Welcome to Minesweeper! Click on the cell at row 1, column 1 (top-left area) to reveal it.",
         highlight: {row: 0, col: 0},
-        action: 'click'
+        action: 'click',
+        needsAction: true
       },
       {
-        text: "Great! Empty cells (0) automatically reveal surrounding cells. Now click on any number to see what it means.",
-        highlight: {row: 2, col: 0},
-        action: 'click'
+        text: "Great! Empty cells (0) automatically reveal surrounding cells. Numbers tell you how many mines are touching that cell.",
+        highlight: null,
+        action: 'continue',
+        needsAction: false
       },
       {
-        text: "Numbers tell you how many mines are adjacent. Now right-click (or hold on mobile) on the highlighted cell to place a flag where you think a mine is.",
+        text: "Now right-click (or long-press on mobile) on the highlighted cell to place a flag where you think a mine is.",
         highlight: {row: 3, col: 1},
-        action: 'flag'
+        action: 'flag',
+        needsAction: true
       },
       {
-        text: "Perfect! Flags mark suspected mines. Let's try chording: click on the '1' you revealed earlier. If the correct number of flags surround it, it reveals the rest!",
+        text: "Perfect! Flags mark suspected mines. Let's try chording: click on the '1' at the highlighted position. If the correct number of flags surround it, it reveals the rest!",
         highlight: {row: 2, col: 0},
-        action: 'chord'
+        action: 'chord',
+        needsAction: true
       },
       {
         text: "Excellent! You've learned the basics: Click to reveal, Right-click to flag, and Click numbers to chord. Ready to play? Click 'Finish' to start a real game!",
         highlight: null,
-        action: 'finish'
+        action: 'finish',
+        needsAction: false
       }
     ];
     
@@ -950,7 +961,7 @@ const game = {
       this.addTutorialHighlight(step.highlight.row, step.highlight.col);
     }
     
-    this.showTutorialMessage(step.text, step.action === 'finish');
+    this.showTutorialMessage(step.text, step.action === 'finish', step.needsAction);
   },
   
   addTutorialHighlight(row, col) {
@@ -987,7 +998,7 @@ const game = {
     if (arrow) arrow.remove();
   },
   
-  showTutorialMessage(text, isFinish) {
+  showTutorialMessage(text, isFinish, needsAction) {
     let msg = document.getElementById('tutorialMessage');
     if (!msg) {
       msg = document.createElement('div');
@@ -999,7 +1010,8 @@ const game = {
     msg.innerHTML = `
       <div>${text}</div>
       <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-        ${!isFinish ? '<button onclick="game.skipTutorialStep()">Skip Step</button>' : ''}
+        ${!needsAction && !isFinish ? '<button onclick="game.skipTutorialStep()">Continue</button>' : ''}
+        ${needsAction && !isFinish ? '<button onclick="game.skipTutorialStep()">Skip Step</button>' : ''}
         ${isFinish ? '<button onclick="game.endTutorial()">Finish Tutorial</button>' : '<button onclick="game.endTutorial()">Quit Tutorial</button>'}
       </div>
     `;
@@ -1018,10 +1030,6 @@ const game = {
     const step = this.tutorialStep;
     
     if (step === 0 && r === 0 && c === 0) {
-      this.reveal(r, c);
-      this.tutorialStep++;
-      this.showTutorialStep();
-    } else if (step === 1 && this.revealed[r][c] === false) {
       this.reveal(r, c);
       this.tutorialStep++;
       this.showTutorialStep();
