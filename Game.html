@@ -656,12 +656,12 @@ const game = {
     e.preventDefault();
     if (this.gameOver || this.revealed[r][c]) return;
     
-    if (this.firstClick) return;
-    
     if (this.tutorialActive) {
       this.handleTutorialRightClick(r, c);
       return;
     }
+    
+    if (this.firstClick) return;
     
     this.flagged[r][c] = !this.flagged[r][c];
     this.updateBoard();
