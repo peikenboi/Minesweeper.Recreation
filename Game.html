@@ -61,7 +61,6 @@ body{
   position:absolute;
   top:9px;
 }
-
 .eye.left{left:8px}
 .eye.right{right:8px}
 
@@ -79,10 +78,8 @@ body{
   height:2px;
   top:10px;
 }
-
 #smiley.dead .eye.left{transform:rotate(45deg)}
 #smiley.dead .eye.right{transform:rotate(-45deg)}
-
 #smiley.dead .mouth{
   border-bottom:none;
   border-top:2px solid black;
@@ -93,6 +90,13 @@ body{
   height:8px;
   border-bottom:3px solid black;
   left:8px;
+}
+
+#controls{
+  display:flex;
+  gap:6px;
+  margin-bottom:6px;
+  flex-wrap:wrap;
 }
 
 .grid{
@@ -123,9 +127,7 @@ body{
   cursor:default;
 }
 
-.cell.mine{
-  background:red;
-}
+.cell.mine{background:red}
 
 .n1{color:#0000ff}
 .n2{color:#008000}
@@ -144,14 +146,25 @@ body{
 
 <div id="header">
   <div class="counter" id="mineCounter">000</div>
-
   <div id="smiley">
     <div class="eye left"></div>
     <div class="eye right"></div>
     <div class="mouth"></div>
   </div>
-
   <div class="counter" id="timer">000</div>
+</div>
+
+<div id="controls">
+<select id="preset">
+  <option value="beginner">Beginner</option>
+  <option value="intermediate">Intermediate</option>
+  <option value="expert">Expert</option>
+  <option value="custom">Custom</option>
+</select>
+<label>Rows <input id="rows" type="number" min="5" max="40" value="9"></label>
+<label>Cols <input id="cols" type="number" min="5" max="40" value="9"></label>
+<label>Mines % <input id="chance" type="number" min="5" max="50" value="12"></label>
+<button id="restart">Restart</button>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -159,11 +172,11 @@ body{
 </div>
 
 <script>
-let rows=9,cols=9,mineChance=12;
+let rows=9, cols=9, mineChance=12;
 let grid=document.getElementById("grid");
-let cells=[],mines=new Set(),flags=new Set(),revealed=new Set();
-let firstClick=true,gameOver=false;
-let timer=0,timerInt=null;
+let cells=[], mines=new Set(), flags=new Set(), revealed=new Set();
+let firstClick=true, gameOver=false;
+let timer=0, timerInt=null;
 
 function idx(r,c){return r*cols+c}
 
@@ -257,8 +270,7 @@ function startTimer(){
 function endGame(win){
   gameOver=true;
   clearInterval(timerInt);
-  let s=document.getElementById("smiley");
-  s.className=win?"win":"dead";
+  document.getElementById("smiley").className=win?"win":"dead";
 }
 
 function checkWin(){
@@ -299,6 +311,27 @@ function init(){
 }
 
 document.getElementById("smiley").onclick=init;
+document.getElementById("restart").onclick=()=>{
+  rows=+rowsInput.value;
+  cols=+colsInput.value;
+  mineChance=+chanceInput.value;
+  init();
+};
+
+let rowsInput=document.getElementById("rows");
+let colsInput=document.getElementById("cols");
+let chanceInput=document.getElementById("chance");
+
+document.getElementById("preset").onchange=e=>{
+  let v=e.target.value;
+  if(v==="beginner"){rows=9;cols=9;mineChance=12}
+  if(v==="intermediate"){rows=16;cols=16;mineChance=15}
+  if(v==="expert"){rows=16;cols=30;mineChance=20}
+  rowsInput.value=rows;
+  colsInput.value=cols;
+  chanceInput.value=mineChance;
+  init();
+};
 
 init();
 </script>
