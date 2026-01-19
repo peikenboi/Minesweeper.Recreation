@@ -927,7 +927,7 @@ const game = {
         action: 'click'
       },
       {
-        text: "Numbers tell you how many mines are adjacent. Now right-click (or hold on mobile) on the cell at row 4, column 2 to place a flag where you think a mine is.",
+        text: "Numbers tell you how many mines are adjacent. Now right-click (or hold on mobile) on the highlighted cell to place a flag where you think a mine is.",
         highlight: {row: 3, col: 1},
         action: 'flag'
       },
@@ -998,8 +998,20 @@ const game = {
     
     msg.innerHTML = `
       <div>${text}</div>
-      ${isFinish ? '<button onclick="game.endTutorial()">Finish Tutorial</button>' : ''}
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+        ${!isFinish ? '<button onclick="game.skipTutorialStep()">Skip Step</button>' : ''}
+        ${isFinish ? '<button onclick="game.endTutorial()">Finish Tutorial</button>' : '<button onclick="game.endTutorial()">Quit Tutorial</button>'}
+      </div>
     `;
+  },
+  
+  skipTutorialStep() {
+    if (this.tutorialStep < 4) {
+      this.tutorialStep++;
+      this.showTutorialStep();
+    } else {
+      this.endTutorial();
+    }
   },
   
   handleTutorialClick(r, c) {
