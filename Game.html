@@ -2,268 +2,803 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minesweeper</title>
-
 <style>
-body{
-  margin:0;
-  background:#008080;
-  font-family:Tahoma, Arial, sans-serif;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-#game{
-  background:#c0c0c0;
-  padding:8px;
-  border:3px solid #fff;
-  border-right-color:#7b7b7b;
-  border-bottom-color:#7b7b7b;
-  position:relative;
+body {
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #008080;
+  user-select: none;
+  touch-action: manipulation;
 }
 
-#header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:6px;
-  padding:4px;
-  background:#bdbdbd;
-  border:2px solid #7b7b7b;
+.game-container {
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 5px;
 }
 
-.counter{
-  background:black;
-  color:red;
-  font-family:"Courier New", monospace;
-  font-size:18px;
-  padding:2px 6px;
-  min-width:50px;
-  text-align:center;
+.header {
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  padding: 5px;
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
 
-#smiley{
-  width:32px;
-  height:32px;
-  background:#ffff00;
-  border:2px solid #7b7b7b;
-  border-top-color:#fff;
-  border-left-color:#fff;
-  position:relative;
-  cursor:pointer;
+.display {
+  background: #000;
+  color: #ff0000;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 5px 8px;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  font-family: 'Courier New', monospace;
+  min-width: 60px;
+  text-align: center;
 }
 
-.eye{width:4px;height:4px;background:black;position:absolute;top:9px}
-.eye.left{left:8px}
-.eye.right{right:8px}
-.mouth{
-  width:14px;
-  height:6px;
-  border-bottom:2px solid black;
-  position:absolute;
-  bottom:8px;
-  left:9px;
-}
-#smiley.dead .mouth{border-bottom:none;border-top:2px solid black}
-#smiley.win .mouth{border-bottom:3px solid black}
-
-#menuBtn{
-  margin-bottom:6px;
-  width:100%;
+.smiley {
+  width: 40px;
+  height: 40px;
+  background: #ffff00;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
 }
 
-.grid{
-  display:grid;
-  gap:2px;
-  background:#7b7b7b;
-  padding:3px;
+.smiley:active {
+  border-color: #808080 #ffffff #ffffff #808080;
 }
 
-.cell{
-  width:26px;
-  height:26px;
-  background:#c0c0c0;
-  border:2px solid #fff;
-  border-right-color:#7b7b7b;
-  border-bottom-color:#7b7b7b;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-  cursor:pointer;
+.face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.cell.revealed{
-  background:#bdbdbd;
-  border:1px solid #7b7b7b;
-  cursor:default;
+.eye {
+  width: 4px;
+  height: 4px;
+  background: #000;
+  position: absolute;
+  top: -2px;
 }
 
-.overlay{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,.7);
-  display:none;
-  align-items:center;
-  justify-content:center;
+.eye.left { left: 10px; }
+.eye.right { right: 10px; }
+
+.mouth {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 6px;
+  border: 2px solid #000;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
 }
 
-.popup{
-  background:#c0c0c0;
-  padding:16px;
-  border:3px solid #fff;
-  border-right-color:#7b7b7b;
-  border-bottom-color:#7b7b7b;
-  text-align:center;
+.mouth.dead {
+  width: 8px;
+  height: 8px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  top: 6px;
 }
-.popup button{margin-top:10px}
+
+.mouth.win {
+  width: 16px;
+  height: 8px;
+  border-radius: 0 0 16px 16px;
+}
+
+.eye.dead {
+  width: 8px;
+  height: 2px;
+  background: transparent;
+  border-bottom: 2px solid #000;
+  transform: rotate(-45deg);
+}
+
+.eye.dead::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 2px;
+  border-bottom: 2px solid #000;
+  transform: rotate(90deg);
+  left: 0;
+  top: 0;
+}
+
+.board {
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  padding: 5px;
+  display: inline-block;
+}
+
+.grid {
+  display: grid;
+  gap: 0;
+}
+
+.cell {
+  width: 30px;
+  height: 30px;
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  cursor: pointer;
+  position: relative;
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell.revealed {
+  border: 1px solid #808080;
+  background: #bdbdbd;
+}
+
+.cell:active:not(.revealed):not(.flagged) {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.cell.mine {
+  background: #ff0000;
+}
+
+.mine-icon {
+  width: 14px;
+  height: 14px;
+  background: #000;
+  border-radius: 50%;
+  position: relative;
+}
+
+.mine-icon::before,
+.mine-icon::after {
+  content: '';
+  position: absolute;
+  background: #000;
+}
+
+.mine-icon::before {
+  width: 20px;
+  height: 2px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mine-icon::after {
+  width: 2px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.flag-icon {
+  width: 0;
+  height: 0;
+  border-left: 8px solid #ff0000;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  position: relative;
+  left: 2px;
+}
+
+.flag-icon::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 16px;
+  background: #000;
+  left: -10px;
+  top: -8px;
+}
+
+.num-1 { color: #0000ff; }
+.num-2 { color: #008000; }
+.num-3 { color: #ff0000; }
+.num-4 { color: #000080; }
+.num-5 { color: #800000; }
+.num-6 { color: #008080; }
+.num-7 { color: #000000; }
+.num-8 { color: #808080; }
+
+.menu-btn {
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.menu-btn:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 15px;
+  min-width: 300px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #808080;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 5px;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  background: #fff;
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+}
+
+.preset-btns {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+
+.preset-btn {
+  flex: 1;
+  background: #c0c0c0;
+  border: 3px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  padding: 8px;
+  cursor: pointer;
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+}
+
+.preset-btn:active,
+.preset-btn.active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.modal-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.game-over-screen {
+  text-align: center;
+}
+
+.game-over-screen h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.game-over-screen .final-time {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
 </style>
 </head>
-
 <body>
-
-<div id="game">
-
-<button id="menuBtn">Menu</button>
-
-<div id="header">
-  <div class="counter" id="mineCounter">000</div>
-  <div id="smiley">
-    <div class="eye left"></div>
-    <div class="eye right"></div>
-    <div class="mouth"></div>
+<div class="game-container">
+  <button class="menu-btn" onclick="game.openMenu()">Menu</button>
+  
+  <div class="header">
+    <div class="display" id="mineCounter">000</div>
+    <div class="smiley" onclick="game.reset()" id="smiley">
+      <div class="face">
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="mouth"></div>
+      </div>
+    </div>
+    <div class="display" id="timer">000</div>
   </div>
-  <div class="counter" id="timer">000</div>
-</div>
-
-<div class="grid" id="grid"></div>
-
-<div class="overlay" id="menu">
-  <div class="popup">
-    <h3>Settings</h3>
-    <label>Rows <input id="rows" type="number" value="9"></label><br>
-    <label>Cols <input id="cols" type="number" value="9"></label><br>
-    <label>Mines % <input id="chance" type="number" value="12"></label><br>
-    <label>Background <input id="bg" type="color" value="#008080"></label><br>
-    <button onclick="applySettings()">Apply</button>
+  
+  <div class="board">
+    <div class="grid" id="grid"></div>
   </div>
 </div>
 
-<div class="overlay" id="endScreen">
-  <div class="popup">
-    <h2 id="endText"></h2>
-    <button onclick="init()">Restart</button>
+<div class="modal" id="menuModal">
+  <div class="modal-content">
+    <div class="modal-title">Settings</div>
+    
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="game.setPreset('beginner')">Beginner</button>
+      <button class="preset-btn" onclick="game.setPreset('intermediate')">Intermediate</button>
+      <button class="preset-btn" onclick="game.setPreset('expert')">Expert</button>
+    </div>
+    
+    <div class="form-group">
+      <label>Width (5-30):</label>
+      <input type="number" id="widthInput" min="5" max="30" value="9">
+    </div>
+    
+    <div class="form-group">
+      <label>Height (5-24):</label>
+      <input type="number" id="heightInput" min="5" max="24" value="9">
+    </div>
+    
+    <div class="form-group">
+      <label>Mine Chance (5-40%):</label>
+      <input type="number" id="mineChanceInput" min="5" max="40" value="15">
+    </div>
+    
+    <div class="form-group">
+      <label>Background Color:</label>
+      <input type="color" id="bgColorInput" value="#008080">
+    </div>
+    
+    <div class="modal-btns">
+      <button class="menu-btn" onclick="game.closeMenu()">Cancel</button>
+      <button class="menu-btn" onclick="game.applySettings()">Apply</button>
+    </div>
   </div>
 </div>
 
+<div class="modal" id="gameOverModal">
+  <div class="modal-content game-over-screen">
+    <h2 id="gameOverTitle">You Win!</h2>
+    <div class="final-time" id="finalTime"></div>
+    <button class="menu-btn" onclick="game.reset(); game.closeGameOver()">Play Again</button>
+  </div>
 </div>
 
 <script>
-let rows=9,cols=9,mineChance=12;
-let grid=document.getElementById("grid");
-let cells=[],mines=new Set(),flags=new Set(),revealed=new Set();
-let firstClick=true,gameOver=false;
-let timer=0,timerInt;
-
-function idx(r,c){return r*cols+c}
-function neighbors(r,c){
-  let a=[];
-  for(let dr=-1;dr<=1;dr++)
-    for(let dc=-1;dc<=1;dc++)
-      if(dr||dc){
-        let nr=r+dr,nc=c+dc;
-        if(nr>=0&&nr<rows&&nc>=0&&nc<cols)a.push([nr,nc]);
+const game = {
+  width: 9,
+  height: 9,
+  mineChance: 15,
+  board: [],
+  revealed: [],
+  flagged: [],
+  mineCount: 0,
+  gameOver: false,
+  gameWon: false,
+  firstClick: true,
+  timer: 0,
+  timerInterval: null,
+  touchTimer: null,
+  
+  init() {
+    this.createBoard();
+    this.render();
+    this.updateMineCounter();
+  },
+  
+  createBoard() {
+    this.board = Array(this.height).fill().map(() => Array(this.width).fill(0));
+    this.revealed = Array(this.height).fill().map(() => Array(this.width).fill(false));
+    this.flagged = Array(this.height).fill().map(() => Array(this.width).fill(false));
+  },
+  
+  placeMines(firstRow, firstCol) {
+    this.mineCount = 0;
+    const totalCells = this.width * this.height;
+    
+    for (let r = 0; r < this.height; r++) {
+      for (let c = 0; c < this.width; c++) {
+        const dist = Math.max(Math.abs(r - firstRow), Math.abs(c - firstCol));
+        if (dist > 1 && Math.random() * 100 < this.mineChance) {
+          this.board[r][c] = -1;
+          this.mineCount++;
+        }
       }
-  return a;
-}
-
-function placeMinesSafe(r,c){
-  let safe=new Set([idx(r,c)]);
-  neighbors(r,c).forEach(p=>safe.add(idx(...p)));
-  for(let i=0;i<rows*cols;i++)
-    if(!safe.has(i)&&Math.random()*100<mineChance)mines.add(i);
-  updateCounter();
-}
-
-function reveal(r,c){
-  let i=idx(r,c);
-  if(revealed.has(i)||flags.has(i)||gameOver)return;
-  if(firstClick){placeMinesSafe(r,c);startTimer();firstClick=false}
-  revealed.add(i);
-  let cell=cells[i];
-  cell.classList.add("revealed");
-  if(mines.has(i)){end(false);return}
-  let n=neighbors(r,c).filter(p=>mines.has(idx(...p))).length;
-  if(n)cell.textContent=n;
-  else neighbors(r,c).forEach(p=>reveal(...p));
-  if(revealed.size===rows*cols-mines.size)end(true);
-}
-
-function flag(i){
-  if(revealed.has(i)||gameOver)return;
-  flags.has(i)?flags.delete(i):flags.add(i);
-  cells[i].textContent=flags.has(i)?"F":"";
-  updateCounter();
-}
-
-function updateCounter(){
-  document.getElementById("mineCounter").textContent=
-    String(Math.max(0,mines.size-flags.size)).padStart(3,"0");
-}
-
-function startTimer(){
-  timerInt=setInterval(()=>{
-    timer++;
-    document.getElementById("timer").textContent=String(timer).padStart(3,"0");
-  },1000);
-}
-
-function end(win){
-  gameOver=true;
-  clearInterval(timerInt);
-  document.getElementById("smiley").className=win?"win":"dead";
-  document.getElementById("endText").textContent=win?"You Win!":"Game Over";
-  document.getElementById("endScreen").style.display="flex";
-}
-
-function init(){
-  grid.innerHTML="";
-  cells=[];mines.clear();flags.clear();revealed.clear();
-  firstClick=true;gameOver=false;timer=0;
-  clearInterval(timerInt);
-  document.getElementById("timer").textContent="000";
-  document.getElementById("mineCounter").textContent="000";
-  document.getElementById("endScreen").style.display="none";
-  document.getElementById("smiley").className="";
-  grid.style.gridTemplateColumns=`repeat(${cols},26px)`;
-
-  for(let r=0;r<rows;r++)
-    for(let c=0;c<cols;c++){
-      let d=document.createElement("div");
-      d.className="cell";
-      let i=idx(r,c);
-      d.onclick=()=>reveal(r,c);
-      d.oncontextmenu=e=>{e.preventDefault();flag(i)};
-      grid.appendChild(d);
-      cells.push(d);
     }
-}
+    
+    for (let r = 0; r < this.height; r++) {
+      for (let c = 0; c < this.width; c++) {
+        if (this.board[r][c] !== -1) {
+          let count = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < this.height && nc >= 0 && nc < this.width) {
+                if (this.board[nr][nc] === -1) count++;
+              }
+            }
+          }
+          this.board[r][c] = count;
+        }
+      }
+    }
+    
+    if (this.board[firstRow][firstCol] !== 0) {
+      let cleared = false;
+      for (let radius = 2; radius <= 3 && !cleared; radius++) {
+        for (let dr = -radius; dr <= radius && !cleared; dr++) {
+          for (let dc = -radius; dc <= radius && !cleared; dc++) {
+            const r = firstRow + dr;
+            const c = firstCol + dc;
+            if (r >= 0 && r < this.height && c >= 0 && c < this.width) {
+              if (this.board[r][c] === -1) {
+                this.board[r][c] = 0;
+                this.mineCount--;
+              }
+            }
+          }
+        }
+        for (let r = 0; r < this.height; r++) {
+          for (let c = 0; c < this.width; c++) {
+            if (this.board[r][c] !== -1) {
+              let count = 0;
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  const nr = r + dr, nc = c + dc;
+                  if (nr >= 0 && nr < this.height && nc >= 0 && nc < this.width) {
+                    if (this.board[nr][nc] === -1) count++;
+                  }
+                }
+              }
+              this.board[r][c] = count;
+            }
+          }
+        }
+        if (this.board[firstRow][firstCol] === 0) cleared = true;
+      }
+    }
+    
+    this.updateMineCounter();
+  },
+  
+  render() {
+    const grid = document.getElementById('grid');
+    grid.style.gridTemplateColumns = `repeat(${this.width}, 30px)`;
+    grid.innerHTML = '';
+    
+    for (let r = 0; r < this.height; r++) {
+      for (let c = 0; c < this.width; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        
+        cell.addEventListener('click', (e) => this.handleClick(e, r, c));
+        cell.addEventListener('contextmenu', (e) => this.handleRightClick(e, r, c));
+        
+        cell.addEventListener('touchstart', (e) => this.handleTouchStart(e, r, c));
+        cell.addEventListener('touchend', (e) => this.handleTouchEnd(e, r, c));
+        cell.addEventListener('touchmove', () => this.cancelTouch());
+        
+        grid.appendChild(cell);
+      }
+    }
+    
+    this.updateBoard();
+  },
+  
+  handleTouchStart(e, r, c) {
+    e.preventDefault();
+    this.touchTimer = setTimeout(() => {
+      this.handleRightClick(e, r, c);
+      this.touchTimer = null;
+    }, 500);
+  },
+  
+  handleTouchEnd(e, r, c) {
+    if (this.touchTimer) {
+      clearTimeout(this.touchTimer);
+      this.handleClick(e, r, c);
+    }
+  },
+  
+  cancelTouch() {
+    if (this.touchTimer) {
+      clearTimeout(this.touchTimer);
+      this.touchTimer = null;
+    }
+  },
+  
+  handleClick(e, r, c) {
+    e.preventDefault();
+    if (this.gameOver) return;
+    
+    if (this.firstClick) {
+      this.placeMines(r, c);
+      this.firstClick = false;
+      this.startTimer();
+      this.reveal(r, c);
+      return;
+    }
+    
+    if (this.revealed[r][c] && this.board[r][c] > 0) {
+      this.chord(r, c);
+    } else if (!this.flagged[r][c]) {
+      this.reveal(r, c);
+    }
+  },
+  
+  handleRightClick(e, r, c) {
+    e.preventDefault();
+    if (this.gameOver || this.revealed[r][c]) return;
+    
+    if (this.firstClick) return;
+    
+    this.flagged[r][c] = !this.flagged[r][c];
+    this.updateBoard();
+    this.updateMineCounter();
+  },
+  
+  reveal(r, c) {
+    if (r < 0 || r >= this.height || c < 0 || c >= this.width) return;
+    if (this.revealed[r][c] || this.flagged[r][c]) return;
+    
+    this.revealed[r][c] = true;
+    
+    if (this.board[r][c] === -1) {
+      this.lose();
+      return;
+    }
+    
+    if (this.board[r][c] === 0) {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          this.reveal(r + dr, c + dc);
+        }
+      }
+    }
+    
+    this.updateBoard();
+    this.checkWin();
+  },
+  
+  chord(r, c) {
+    if (!this.revealed[r][c]) return;
+    
+    const num = this.board[r][c];
+    if (num === 0) return;
+    
+    let flagCount = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < this.height && nc >= 0 && nc < this.width) {
+          if (this.flagged[nr][nc]) flagCount++;
+        }
+      }
+    }
+    
+    if (flagCount === num) {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < this.height && nc >= 0 && nc < this.width) {
+            if (!this.flagged[nr][nc]) this.reveal(nr, nc);
+          }
+        }
+      }
+    }
+  },
+  
+  updateBoard() {
+    for (let r = 0; r < this.height; r++) {
+      for (let c = 0; c < this.width; c++) {
+        const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+        cell.className = 'cell';
+        cell.innerHTML = '';
+        
+        if (this.revealed[r][c]) {
+          cell.classList.add('revealed');
+          if (this.board[r][c] === -1) {
+            cell.classList.add('mine');
+            const mine = document.createElement('div');
+            mine.className = 'mine-icon';
+            cell.appendChild(mine);
+          } else if (this.board[r][c] > 0) {
+            cell.textContent = this.board[r][c];
+            cell.classList.add(`num-${this.board[r][c]}`);
+          }
+        } else if (this.flagged[r][c]) {
+          const flag = document.createElement('div');
+          flag.className = 'flag-icon';
+          cell.appendChild(flag);
+        }
+      }
+    }
+  },
+  
+  updateMineCounter() {
+    const flagCount = this.flagged.flat().filter(f => f).length;
+    const remaining = Math.max(0, this.mineCount - flagCount);
+    document.getElementById('mineCounter').textContent = String(remaining).padStart(3, '0');
+  },
+  
+  startTimer() {
+    this.timer = 0;
+    this.timerInterval = setInterval(() => {
+      this.timer++;
+      document.getElementById('timer').textContent = String(Math.min(999, this.timer)).padStart(3, '0');
+    }, 1000);
+  },
+  
+  stopTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  },
+  
+  setSmiley(state) {
+    const eyes = document.querySelectorAll('.eye');
+    const mouth = document.querySelector('.mouth');
+    
+    eyes.forEach(eye => {
+      eye.className = 'eye ' + (eye.classList.contains('left') ? 'left' : 'right');
+      if (state === 'dead') eye.classList.add('dead');
+    });
+    
+    mouth.className = 'mouth';
+    if (state === 'dead') mouth.classList.add('dead');
+    if (state === 'win') mouth.classList.add('win');
+  },
+  
+  lose() {
+    this.gameOver = true;
+    this.stopTimer();
+    this.setSmiley('dead');
+    
+    for (let r = 0; r < this.height; r++) {
+      for (let c = 0; c < this.width; c++) {
+        if (this.board[r][c] === -1) {
+          this.revealed[r][c] = true;
+        }
+      }
+    }
+    
+    this.updateBoard();
+    
+    setTimeout(() => {
+      document.getElementById('gameOverTitle').textContent = 'Game Over!';
+      document.getElementById('finalTime').textContent = `Time: ${this.timer}s`;
+      document.getElementById('gameOverModal').classList.add('active');
+    }, 500);
+  },
+  
+  checkWin() {
+    let allRevealed = true;
+    for (let r = 0; r < this.height; r++) {
+      for (let c = 0; c < this.width; c++) {
+        if (this.board[r][c] !== -1 && !this.revealed[r][c]) {
+          allRevealed = false;
+          break;
+        }
+      }
+      if (!allRevealed) break;
+    }
+    
+    if (allRevealed) {
+      this.gameOver = true;
+      this.gameWon = true;
+      this.stopTimer();
+      this.setSmiley('win');
+      
+      setTimeout(() => {
+        document.getElementById('gameOverTitle').textContent = 'You Win!';
+        document.getElementById('finalTime').textContent = `Time: ${this.timer}s`;
+        document.getElementById('gameOverModal').classList.add('active');
+      }, 300);
+    }
+  },
+  
+  reset() {
+    this.gameOver = false;
+    this.gameWon = false;
+    this.firstClick = true;
+    this.timer = 0;
+    this.stopTimer();
+    document.getElementById('timer').textContent = '000';
+    this.setSmiley('normal');
+    this.createBoard();
+    this.render();
+  },
+  
+  openMenu() {
+    document.getElementById('menuModal').classList.add('active');
+    document.getElementById('widthInput').value = this.width;
+    document.getElementById('heightInput').value = this.height;
+    document.getElementById('mineChanceInput').value = this.mineChance;
+  },
+  
+  closeMenu() {
+    document.getElementById('menuModal').classList.remove('active');
+  },
+  
+  closeGameOver() {
+    document.getElementById('gameOverModal').classList.remove('active');
+  },
+  
+  setPreset(preset) {
+    const presets = {
+      beginner: { width: 9, height: 9, mineChance: 15 },
+      intermediate: { width: 16, height: 16, mineChance: 16 },
+      expert: { width: 30, height: 16, mineChance: 20 }
+    };
+    
+    const p = presets[preset];
+    document.getElementById('widthInput').value = p.width;
+    document.getElementById('heightInput').value = p.height;
+    document.getElementById('mineChanceInput').value = p.mineChance;
+  },
+  
+  applySettings() {
+    this.width = Math.max(5, Math.min(30, parseInt(document.getElementById('widthInput').value)));
+    this.height = Math.max(5, Math.min(24, parseInt(document.getElementById('heightInput').value)));
+    this.mineChance = Math.max(5, Math.min(40, parseInt(document.getElementById('mineChanceInput').value)));
+    
+    const bgColor = document.getElementById('bgColorInput').value;
+    document.body.style.background = bgColor;
+    
+    this.closeMenu();
+    this.reset();
+  }
+};
 
-function applySettings(){
-  rows=+rows.value;
-  cols=+cols.value;
-  mineChance=+chance.value;
-  document.body.style.background=bg.value;
-  menu.style.display="none";
-  init();
-}
-
-menuBtn.onclick=()=>menu.style.display="flex";
-smiley.onclick=init;
-init();
+game.init();
 </script>
-
 </body>
 </html>
