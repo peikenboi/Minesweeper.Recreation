@@ -46,15 +46,53 @@ body{
 #smiley{
   width:32px;
   height:32px;
-  font-size:20px;
+  background:#ffff00;
+  border:2px solid #7b7b7b;
+  border-top-color:#ffffff;
+  border-left-color:#ffffff;
+  position:relative;
   cursor:pointer;
 }
 
-#controls{
-  display:flex;
-  gap:6px;
-  margin-bottom:6px;
-  flex-wrap:wrap;
+.eye{
+  width:4px;
+  height:4px;
+  background:black;
+  position:absolute;
+  top:9px;
+}
+
+.eye.left{left:8px}
+.eye.right{right:8px}
+
+.mouth{
+  width:14px;
+  height:6px;
+  border-bottom:2px solid black;
+  position:absolute;
+  bottom:8px;
+  left:9px;
+}
+
+#smiley.dead .eye{
+  width:8px;
+  height:2px;
+  top:10px;
+}
+
+#smiley.dead .eye.left{transform:rotate(45deg)}
+#smiley.dead .eye.right{transform:rotate(-45deg)}
+
+#smiley.dead .mouth{
+  border-bottom:none;
+  border-top:2px solid black;
+}
+
+#smiley.win .mouth{
+  width:16px;
+  height:8px;
+  border-bottom:3px solid black;
+  left:8px;
 }
 
 .grid{
@@ -106,21 +144,14 @@ body{
 
 <div id="header">
   <div class="counter" id="mineCounter">000</div>
-  <button id="smiley">🙂</button>
-  <div class="counter" id="timer">000</div>
-</div>
 
-<div id="controls">
-<select id="preset">
-  <option value="beginner">Beginner</option>
-  <option value="intermediate">Intermediate</option>
-  <option value="expert">Expert</option>
-  <option value="custom">Custom</option>
-</select>
-<label>Rows <input id="rows" type="number" value="9" min="5" max="40"></label>
-<label>Cols <input id="cols" type="number" value="9" min="5" max="40"></label>
-<label>Mines % <input id="chance" type="number" value="12" min="5" max="50"></label>
-<button id="restart">Restart</button>
+  <div id="smiley">
+    <div class="eye left"></div>
+    <div class="eye right"></div>
+    <div class="mouth"></div>
+  </div>
+
+  <div class="counter" id="timer">000</div>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -132,29 +163,26 @@ let rows=9,cols=9,mineChance=12;
 let grid=document.getElementById("grid");
 let cells=[],mines=new Set(),flags=new Set(),revealed=new Set();
 let firstClick=true,gameOver=false;
-let timer=0,timerInt=null,score=0;
+let timer=0,timerInt=null;
 
 function idx(r,c){return r*cols+c}
 
 function neighbors(r,c){
   let a=[];
   for(let dr=-1;dr<=1;dr++)
-    for(let dc=-1;dc<=1;dc++){
+    for(let dc=-1;dc<=1;dc++)
       if(dr||dc){
         let nr=r+dr,nc=c+dc;
         if(nr>=0&&nr<rows&&nc>=0&&nc<cols)a.push([nr,nc]);
       }
-    }
   return a;
 }
 
 function placeMinesSafe(sr,sc){
   let safe=new Set([idx(sr,sc)]);
   neighbors(sr,sc).forEach(([r,c])=>safe.add(idx(r,c)));
-  for(let i=0;i<rows*cols;i++){
-    if(safe.has(i))continue;
-    if(Math.random()*100<mineChance)mines.add(i);
-  }
+  for(let i=0;i<rows*cols;i++)
+    if(!safe.has(i)&&Math.random()*100<mineChance)mines.add(i);
   updateMineCounter();
 }
 
@@ -178,12 +206,10 @@ function reveal(r,c){
 
   if(mines.has(i)){
     cell.classList.add("mine");
-    cell.textContent="💣";
     endGame(false);
     return;
   }
 
-  score+=10;
   let n=countMines(r,c);
   if(n){
     cell.textContent=n;
@@ -211,14 +237,14 @@ function flag(i){
     cell.textContent="";
   }else{
     flags.add(i);
-    cell.textContent="🚩";
+    cell.textContent="F";
   }
   updateMineCounter();
 }
 
 function updateMineCounter(){
-  let m=Math.max(0,mines.size-flags.size);
-  document.getElementById("mineCounter").textContent=String(m).padStart(3,"0");
+  document.getElementById("mineCounter").textContent=
+    String(Math.max(0,mines.size-flags.size)).padStart(3,"0");
 }
 
 function startTimer(){
@@ -231,8 +257,8 @@ function startTimer(){
 function endGame(win){
   gameOver=true;
   clearInterval(timerInt);
-  document.getElementById("smiley").textContent=win?"😎":"😵";
-  if(win)alert("You win! Score: "+score);
+  let s=document.getElementById("smiley");
+  s.className=win?"win":"dead";
 }
 
 function checkWin(){
@@ -247,12 +273,11 @@ function init(){
   revealed.clear();
   firstClick=true;
   gameOver=false;
-  score=0;
   timer=0;
   clearInterval(timerInt);
   document.getElementById("timer").textContent="000";
-  document.getElementById("smiley").textContent="🙂";
   document.getElementById("mineCounter").textContent="000";
+  document.getElementById("smiley").className="";
   grid.style.gridTemplateColumns=`repeat(${cols},26px)`;
 
   for(let r=0;r<rows;r++)
@@ -273,29 +298,7 @@ function init(){
     }
 }
 
-document.getElementById("restart").onclick=()=>{
-  rows=+rowsInput.value;
-  cols=+colsInput.value;
-  mineChance=+chanceInput.value;
-  init();
-};
-
 document.getElementById("smiley").onclick=init;
-
-let rowsInput=document.getElementById("rows");
-let colsInput=document.getElementById("cols");
-let chanceInput=document.getElementById("chance");
-
-document.getElementById("preset").onchange=e=>{
-  let v=e.target.value;
-  if(v==="beginner"){rows=9;cols=9;mineChance=12}
-  if(v==="intermediate"){rows=16;cols=16;mineChance=15}
-  if(v==="expert"){rows=16;cols=30;mineChance=20}
-  rowsInput.value=rows;
-  colsInput.value=cols;
-  chanceInput.value=mineChance;
-  init();
-};
 
 init();
 </script>
