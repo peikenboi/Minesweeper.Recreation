@@ -18,9 +18,10 @@ body{
 #game{
   background:#c0c0c0;
   padding:8px;
-  border:3px solid #ffffff;
+  border:3px solid #fff;
   border-right-color:#7b7b7b;
   border-bottom-color:#7b7b7b;
+  position:relative;
 }
 
 #header{
@@ -48,22 +49,15 @@ body{
   height:32px;
   background:#ffff00;
   border:2px solid #7b7b7b;
-  border-top-color:#ffffff;
-  border-left-color:#ffffff;
+  border-top-color:#fff;
+  border-left-color:#fff;
   position:relative;
   cursor:pointer;
 }
 
-.eye{
-  width:4px;
-  height:4px;
-  background:black;
-  position:absolute;
-  top:9px;
-}
+.eye{width:4px;height:4px;background:black;position:absolute;top:9px}
 .eye.left{left:8px}
 .eye.right{right:8px}
-
 .mouth{
   width:14px;
   height:6px;
@@ -72,31 +66,12 @@ body{
   bottom:8px;
   left:9px;
 }
+#smiley.dead .mouth{border-bottom:none;border-top:2px solid black}
+#smiley.win .mouth{border-bottom:3px solid black}
 
-#smiley.dead .eye{
-  width:8px;
-  height:2px;
-  top:10px;
-}
-#smiley.dead .eye.left{transform:rotate(45deg)}
-#smiley.dead .eye.right{transform:rotate(-45deg)}
-#smiley.dead .mouth{
-  border-bottom:none;
-  border-top:2px solid black;
-}
-
-#smiley.win .mouth{
-  width:16px;
-  height:8px;
-  border-bottom:3px solid black;
-  left:8px;
-}
-
-#controls{
-  display:flex;
-  gap:6px;
+#menuBtn{
   margin-bottom:6px;
-  flex-wrap:wrap;
+  width:100%;
 }
 
 .grid{
@@ -110,14 +85,13 @@ body{
   width:26px;
   height:26px;
   background:#c0c0c0;
-  border:2px solid #ffffff;
+  border:2px solid #fff;
   border-right-color:#7b7b7b;
   border-bottom-color:#7b7b7b;
   display:flex;
   align-items:center;
   justify-content:center;
   font-weight:bold;
-  user-select:none;
   cursor:pointer;
 }
 
@@ -127,22 +101,32 @@ body{
   cursor:default;
 }
 
-.cell.mine{background:red}
+.overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
 
-.n1{color:#0000ff}
-.n2{color:#008000}
-.n3{color:#ff0000}
-.n4{color:#000080}
-.n5{color:#800000}
-.n6{color:#008080}
-.n7{color:#000000}
-.n8{color:#808080}
+.popup{
+  background:#c0c0c0;
+  padding:16px;
+  border:3px solid #fff;
+  border-right-color:#7b7b7b;
+  border-bottom-color:#7b7b7b;
+  text-align:center;
+}
+.popup button{margin-top:10px}
 </style>
 </head>
 
 <body>
 
 <div id="game">
+
+<button id="menuBtn">Menu</button>
 
 <div id="header">
   <div class="counter" id="mineCounter">000</div>
@@ -154,32 +138,36 @@ body{
   <div class="counter" id="timer">000</div>
 </div>
 
-<div id="controls">
-<select id="preset">
-  <option value="beginner">Beginner</option>
-  <option value="intermediate">Intermediate</option>
-  <option value="expert">Expert</option>
-  <option value="custom">Custom</option>
-</select>
-<label>Rows <input id="rows" type="number" min="5" max="40" value="9"></label>
-<label>Cols <input id="cols" type="number" min="5" max="40" value="9"></label>
-<label>Mines % <input id="chance" type="number" min="5" max="50" value="12"></label>
-<button id="restart">Restart</button>
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="menu">
+  <div class="popup">
+    <h3>Settings</h3>
+    <label>Rows <input id="rows" type="number" value="9"></label><br>
+    <label>Cols <input id="cols" type="number" value="9"></label><br>
+    <label>Mines % <input id="chance" type="number" value="12"></label><br>
+    <label>Background <input id="bg" type="color" value="#008080"></label><br>
+    <button onclick="applySettings()">Apply</button>
+  </div>
 </div>
 
-<div class="grid" id="grid"></div>
+<div class="overlay" id="endScreen">
+  <div class="popup">
+    <h2 id="endText"></h2>
+    <button onclick="init()">Restart</button>
+  </div>
+</div>
 
 </div>
 
 <script>
-let rows=9, cols=9, mineChance=12;
+let rows=9,cols=9,mineChance=12;
 let grid=document.getElementById("grid");
-let cells=[], mines=new Set(), flags=new Set(), revealed=new Set();
-let firstClick=true, gameOver=false;
-let timer=0, timerInt=null;
+let cells=[],mines=new Set(),flags=new Set(),revealed=new Set();
+let firstClick=true,gameOver=false;
+let timer=0,timerInt;
 
 function idx(r,c){return r*cols+c}
-
 function neighbors(r,c){
   let a=[];
   for(let dr=-1;dr<=1;dr++)
@@ -191,71 +179,36 @@ function neighbors(r,c){
   return a;
 }
 
-function placeMinesSafe(sr,sc){
-  let safe=new Set([idx(sr,sc)]);
-  neighbors(sr,sc).forEach(([r,c])=>safe.add(idx(r,c)));
+function placeMinesSafe(r,c){
+  let safe=new Set([idx(r,c)]);
+  neighbors(r,c).forEach(p=>safe.add(idx(...p)));
   for(let i=0;i<rows*cols;i++)
     if(!safe.has(i)&&Math.random()*100<mineChance)mines.add(i);
-  updateMineCounter();
-}
-
-function countMines(r,c){
-  return neighbors(r,c).filter(([nr,nc])=>mines.has(idx(nr,nc))).length;
+  updateCounter();
 }
 
 function reveal(r,c){
   let i=idx(r,c);
   if(revealed.has(i)||flags.has(i)||gameOver)return;
-
-  if(firstClick){
-    placeMinesSafe(r,c);
-    startTimer();
-    firstClick=false;
-  }
-
+  if(firstClick){placeMinesSafe(r,c);startTimer();firstClick=false}
   revealed.add(i);
   let cell=cells[i];
   cell.classList.add("revealed");
-
-  if(mines.has(i)){
-    cell.classList.add("mine");
-    endGame(false);
-    return;
-  }
-
-  let n=countMines(r,c);
-  if(n){
-    cell.textContent=n;
-    cell.classList.add("n"+n);
-  }else{
-    neighbors(r,c).forEach(([nr,nc])=>reveal(nr,nc));
-  }
-
-  checkWin();
-}
-
-function chord(r,c){
-  let i=idx(r,c);
-  if(!revealed.has(i))return;
-  let n=countMines(r,c);
-  let f=neighbors(r,c).filter(([nr,nc])=>flags.has(idx(nr,nc))).length;
-  if(f===n)neighbors(r,c).forEach(([nr,nc])=>reveal(nr,nc));
+  if(mines.has(i)){end(false);return}
+  let n=neighbors(r,c).filter(p=>mines.has(idx(...p))).length;
+  if(n)cell.textContent=n;
+  else neighbors(r,c).forEach(p=>reveal(...p));
+  if(revealed.size===rows*cols-mines.size)end(true);
 }
 
 function flag(i){
   if(revealed.has(i)||gameOver)return;
-  let cell=cells[i];
-  if(flags.has(i)){
-    flags.delete(i);
-    cell.textContent="";
-  }else{
-    flags.add(i);
-    cell.textContent="F";
-  }
-  updateMineCounter();
+  flags.has(i)?flags.delete(i):flags.add(i);
+  cells[i].textContent=flags.has(i)?"F":"";
+  updateCounter();
 }
 
-function updateMineCounter(){
+function updateCounter(){
   document.getElementById("mineCounter").textContent=
     String(Math.max(0,mines.size-flags.size)).padStart(3,"0");
 }
@@ -267,72 +220,48 @@ function startTimer(){
   },1000);
 }
 
-function endGame(win){
+function end(win){
   gameOver=true;
   clearInterval(timerInt);
   document.getElementById("smiley").className=win?"win":"dead";
-}
-
-function checkWin(){
-  if(revealed.size===rows*cols-mines.size)endGame(true);
+  document.getElementById("endText").textContent=win?"You Win!":"Game Over";
+  document.getElementById("endScreen").style.display="flex";
 }
 
 function init(){
   grid.innerHTML="";
-  cells=[];
-  mines.clear();
-  flags.clear();
-  revealed.clear();
-  firstClick=true;
-  gameOver=false;
-  timer=0;
+  cells=[];mines.clear();flags.clear();revealed.clear();
+  firstClick=true;gameOver=false;timer=0;
   clearInterval(timerInt);
   document.getElementById("timer").textContent="000";
   document.getElementById("mineCounter").textContent="000";
+  document.getElementById("endScreen").style.display="none";
   document.getElementById("smiley").className="";
   grid.style.gridTemplateColumns=`repeat(${cols},26px)`;
 
   for(let r=0;r<rows;r++)
     for(let c=0;c<cols;c++){
-      let cell=document.createElement("div");
-      cell.className="cell";
+      let d=document.createElement("div");
+      d.className="cell";
       let i=idx(r,c);
-
-      cell.onclick=()=>revealed.has(i)?chord(r,c):reveal(r,c);
-      cell.oncontextmenu=e=>{e.preventDefault();flag(i)};
-
-      let t;
-      cell.addEventListener("touchstart",()=>t=setTimeout(()=>flag(i),500));
-      cell.addEventListener("touchend",()=>clearTimeout(t));
-
-      grid.appendChild(cell);
-      cells.push(cell);
+      d.onclick=()=>reveal(r,c);
+      d.oncontextmenu=e=>{e.preventDefault();flag(i)};
+      grid.appendChild(d);
+      cells.push(d);
     }
 }
 
-document.getElementById("smiley").onclick=init;
-document.getElementById("restart").onclick=()=>{
-  rows=+rowsInput.value;
-  cols=+colsInput.value;
-  mineChance=+chanceInput.value;
+function applySettings(){
+  rows=+rows.value;
+  cols=+cols.value;
+  mineChance=+chance.value;
+  document.body.style.background=bg.value;
+  menu.style.display="none";
   init();
-};
+}
 
-let rowsInput=document.getElementById("rows");
-let colsInput=document.getElementById("cols");
-let chanceInput=document.getElementById("chance");
-
-document.getElementById("preset").onchange=e=>{
-  let v=e.target.value;
-  if(v==="beginner"){rows=9;cols=9;mineChance=12}
-  if(v==="intermediate"){rows=16;cols=16;mineChance=15}
-  if(v==="expert"){rows=16;cols=30;mineChance=20}
-  rowsInput.value=rows;
-  colsInput.value=cols;
-  chanceInput.value=mineChance;
-  init();
-};
-
+menuBtn.onclick=()=>menu.style.display="flex";
+smiley.onclick=init;
 init();
 </script>
 
